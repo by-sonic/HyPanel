@@ -209,7 +209,7 @@ func (s *ConfigService) Save(obj string, act string, data json.RawMessage, initU
 		inboundIds, err = s.ClientService.Save(tx, act, data, hostname)
 		if err == nil && len(inboundIds) > 0 {
 			objs = append(objs, "inbounds")
-			err = s.InboundService.RestartInbounds(tx, inboundIds)
+			err = s.InboundService.ApplyUserChanges(tx, inboundIds)
 			if err != nil {
 				return nil, common.NewErrorf("failed to update users for inbounds: %v", err)
 			}
@@ -258,6 +258,88 @@ func (s *ConfigService) Save(obj string, act string, data json.RawMessage, initU
 	LastUpdate = time.Now().Unix()
 
 	return objs, nil
+}
+
+// BanClient toggles an explicit admin ban on a client. Banning disables the
+// client and, for hysteria2 inbounds, immediately blocks new handshakes and
+// kicks any live session (via ApplyUserChanges -> UpdateInboundUsers ->
+// RetainUsers); other protocols are evicted by an inbound restart. Unbanning
+// re-enables the client (a still-over-quota client is re-disabled by DepleteJob).
+func (s *ConfigService) BanClient(clientId uint, banned bool, loginUser string) error {
+	db := database.GetDB()
+	tx := db.Begin()
+	if tx.Error != nil {
+		return common.NewErrorf("failed to begin transaction: %v", tx.Error)
+	}
+	committed := false
+	defer func() {
+		if !committed {
+			tx.Rollback()
+		}
+	}()
+
+	var client model.Client
+	if err := tx.Where("id = ?", clientId).First(&client).Error; err != nil {
+		return err
+	}
+	var inboundIds []uint
+	if err := json.Unmarshal(client.Inbounds, &inboundIds); err != nil {
+		return err
+	}
+
+	now := time.Now().Unix()
+	updates := map[string]interface{}{"banned": banned}
+	if banned {
+		updates["enable"] = false
+		updates["banned_at"] = now
+	} else {
+		// On unban, re-enable only if the client is within its limits; an
+		// over-quota or expired client stays disabled (same condition as
+		// DepleteClients), so unbanning never grants access a depleted client
+		// shouldn't have.
+		overQuota := client.Volume > 0 && client.Up+client.Down > client.Volume
+		expired := client.Expiry > 0 && client.Expiry < now
+		updates["enable"] = !overQuota && !expired
+		updates["banned_at"] = 0
+	}
+	if err := tx.Model(&model.Client{}).Where("id = ?", clientId).Updates(updates).Error; err != nil {
+		return err
+	}
+
+	action := "unban"
+	if banned {
+		action = "ban"
+	}
+	nameJSON, err := json.Marshal(client.Name)
+	if err != nil {
+		return err
+	}
+	if err := tx.Create(&model.Changes{
+		DateTime: now,
+		Actor:    loginUser,
+		Key:      "clients",
+		Action:   action,
+		Obj:      json.RawMessage(nameJSON),
+	}).Error; err != nil {
+		return err
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return common.NewErrorf("failed to commit ban: %v", err)
+	}
+	committed = true
+
+	// Apply the live core change only AFTER the DB commit: if the commit fails we
+	// must not have already mutated the running core (which would leave the ban
+	// live in memory but absent from the DB, i.e. lost on restart). A failure
+	// here is non-fatal — the ban is persisted and the next DepleteJob/save
+	// reconciles the live user set.
+	if err := s.InboundService.ApplyUserChanges(database.GetDB(), inboundIds); err != nil {
+		logger.Warning("client ", client.Name, " ban persisted but live user-update failed: ", err)
+	}
+
+	LastUpdate = now
+	return nil
 }
 
 func (s *ConfigService) CheckChanges(lu string) (bool, error) {

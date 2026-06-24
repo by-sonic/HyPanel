@@ -509,7 +509,8 @@ func (s *ClientService) ResetClients(tx *gorm.DB, dt int64) ([]uint, error) {
 		client.TotalDown += client.Down
 		client.Up = 0
 		client.Down = 0
-		if !client.Enable {
+		// Don't resurrect an explicitly banned client on its periodic reset.
+		if !client.Enable && !client.Banned {
 			client.Enable = true
 			var clientInboundIds []uint
 			json.Unmarshal(client.Inbounds, &clientInboundIds)

@@ -33,6 +33,12 @@ RUN CRONET_ARCH="$TARGETARCH" && \
 COPY . .
 COPY --from=front-builder /app/dist/ /app/web/html/
 
+# HyPanel: reconstruct the patched sing-box/sing-quic forks and repoint go.mod at
+# them before building. Ф1 (restart-free Hysteria2 user add/ban + instant kick)
+# calls methods upstream does not expose; without this the build fails. See
+# forks/README.md. setup.sh is idempotent and rewrites the replace directives.
+RUN bash forks/setup.sh && go mod tidy
+
 RUN if [ "$TARGETARCH" = "arm" ]; then export GOARM=7; [ "$TARGETVARIANT" = "v6" ] && export GOARM=6; fi; \
     go build -ldflags="-w -s" \
     -tags "with_quic,with_grpc,with_utls,with_acme,with_gvisor,with_naive_outbound,with_purego,with_tailscale" \

@@ -31,3 +31,8 @@ windows/sui-*.exe
 # Editor directories and files
 .idea
 .vscode
+
+# HyPanel forks: only forks/patched-files/ + forks/*.sh + forks/*.md are tracked.
+# The upstream clones are reconstructed by forks/setup.sh on the build host.
+forks/sing-box/
+forks/sing-quic/

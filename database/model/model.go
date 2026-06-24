@@ -36,6 +36,12 @@ type Client struct {
 	Desc     string          `json:"desc" form:"desc"`
 	Group    string          `json:"group" form:"group"`
 
+	// Explicit admin ban, distinct from over-quota/expiry (which flip Enable).
+	// A banned client is treated as disabled when assembling inbound users and
+	// is kicked from live Hysteria2 sessions immediately.
+	Banned   bool  `json:"banned" form:"banned" gorm:"default:false;not null"`
+	BannedAt int64 `json:"bannedAt" form:"bannedAt" gorm:"default:0;not null"`
+
 	// Delay start and periodic reset
 	DelayStart bool  `json:"delayStart" form:"delayStart" gorm:"default:false;not null"`
 	AutoReset  bool  `json:"autoReset" form:"autoReset" gorm:"default:false;not null"`

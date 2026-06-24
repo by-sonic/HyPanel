@@ -8,6 +8,7 @@ import (
 
 	"github.com/alireza0/s-ui/database"
 	"github.com/alireza0/s-ui/database/model"
+	"github.com/alireza0/s-ui/logger"
 	"github.com/alireza0/s-ui/util"
 	"github.com/alireza0/s-ui/util/common"
 
@@ -332,6 +333,108 @@ func (s *InboundService) initUsers(db *gorm.DB, inboundJson []byte, clientIds st
 	}
 
 	return json.Marshal(inbound)
+}
+
+// hy2Users returns the (name, password) pairs that the given hysteria2 inbound
+// should authenticate: one per enabled, non-banned client attached to it, read
+// from the same Client.Config["hysteria2"].password source as the inline-users
+// assembly path (addUsers/fetchUsers), so the live set matches a full restart.
+func (s *InboundService) hy2Users(db *gorm.DB, inboundId uint) (names []string, passwords []string, err error) {
+	type hy2Row struct {
+		Name     string
+		Password string
+	}
+	var rows []hy2Row
+	err = db.Raw(`SELECT clients.name AS name,
+		json_extract(clients.config, "$.hysteria2.password") AS password
+		FROM clients
+		WHERE clients.enable = 1 AND clients.banned = 0
+		AND json_extract(clients.config, "$.hysteria2.password") IS NOT NULL
+		AND ? IN (SELECT json_each.value FROM json_each(clients.inbounds))`, inboundId).Scan(&rows).Error
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, r := range rows {
+		if r.Password == "" {
+			continue
+		}
+		names = append(names, r.Name)
+		passwords = append(passwords, r.Password)
+	}
+	return names, passwords, nil
+}
+
+// UpdateInboundUsers live-replaces the user set of a single hysteria2 inbound in
+// the running core (no remove+add, so valid users are never disconnected;
+// removed users are kicked). No-op if the core is down.
+func (s *InboundService) UpdateInboundUsers(db *gorm.DB, inboundId uint) error {
+	if !corePtr.IsRunning() {
+		return nil
+	}
+	var tag string
+	err := db.Model(model.Inbound{}).Select("tag").Where("id = ?", inboundId).Scan(&tag).Error
+	if err != nil {
+		return err
+	}
+	if tag == "" {
+		// No inbound row for this id (Scan into a scalar leaves tag empty on a
+		// no-rows match without erroring). Log rather than silently no-op so a
+		// stale inbound id is diagnosable.
+		logger.Warning("UpdateInboundUsers: no inbound tag for id ", inboundId, "; skipping live update")
+		return nil
+	}
+	names, passwords, err := s.hy2Users(db, inboundId)
+	if err != nil {
+		return err
+	}
+	return corePtr.UpdateInboundUsers(tag, names, passwords)
+}
+
+// ApplyUserChanges propagates a client-driven change to the affected inbounds in
+// the running core. Hysteria2 inbounds get a restart-free live user-map update
+// (when hy2LiveUpdate is enabled); every other protocol — and hysteria2 too when
+// live update is disabled — falls back to RestartInbounds (remove+add). This is
+// the single entry point used by both the Save path and the deplete cron.
+func (s *InboundService) ApplyUserChanges(db *gorm.DB, inboundIds []uint) error {
+	if !corePtr.IsRunning() || len(inboundIds) == 0 {
+		return nil
+	}
+	liveUpdate, err := (&SettingService{}).GetHy2LiveUpdate()
+	if err != nil {
+		liveUpdate = true // safe default: prefer not dropping connections
+	}
+
+	var hy2Ids, otherIds []uint
+	if liveUpdate {
+		var hy2Set []uint
+		err = db.Model(model.Inbound{}).Where("id IN ? AND type = ?", inboundIds, "hysteria2").Pluck("id", &hy2Set).Error
+		if err != nil {
+			return err
+		}
+		hy2Map := make(map[uint]struct{}, len(hy2Set))
+		for _, id := range hy2Set {
+			hy2Map[id] = struct{}{}
+		}
+		for _, id := range inboundIds {
+			if _, ok := hy2Map[id]; ok {
+				hy2Ids = append(hy2Ids, id)
+			} else {
+				otherIds = append(otherIds, id)
+			}
+		}
+	} else {
+		otherIds = inboundIds
+	}
+
+	for _, id := range hy2Ids {
+		if err = s.UpdateInboundUsers(db, id); err != nil {
+			return err
+		}
+	}
+	if len(otherIds) > 0 {
+		return s.RestartInbounds(db, otherIds)
+	}
+	return nil
 }
 
 func (s *InboundService) RestartInbounds(tx *gorm.DB, ids []uint) error {

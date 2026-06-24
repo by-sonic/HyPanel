@@ -314,6 +314,26 @@ func (a *ApiService) Save(c *gin.Context, loginUser string) {
 	}
 }
 
+func (a *ApiService) BanClient(c *gin.Context, loginUser string) {
+	id, err := strconv.ParseUint(c.Request.FormValue("id"), 10, 64)
+	if err != nil {
+		jsonMsg(c, "ban", err)
+		return
+	}
+	banned, err := strconv.ParseBool(c.Request.FormValue("banned"))
+	if err != nil {
+		jsonMsg(c, "ban", err)
+		return
+	}
+	if err = a.ConfigService.BanClient(uint(id), banned, loginUser); err != nil {
+		jsonMsg(c, "ban", err)
+		return
+	}
+	if err = a.LoadPartialData(c, []string{"clients", "inbounds"}); err != nil {
+		jsonMsg(c, "ban", err)
+	}
+}
+
 func (a *ApiService) RestartApp(c *gin.Context) {
 	err := a.PanelService.RestartPanel(3)
 	jsonMsg(c, "restartApp", err)

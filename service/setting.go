@@ -65,6 +65,7 @@ var defaultValueMap = map[string]string{
 	"subURI":        "",
 	"subJsonExt":    "",
 	"subClashExt":   "",
+	"hy2LiveUpdate": "true",
 	"config":        defaultConfig,
 	"version":       config.GetVersion(),
 }
@@ -405,6 +406,14 @@ func (s *SettingService) Save(tx *gorm.DB, data json.RawMessage) error {
 		}
 	}
 	return err
+}
+
+// GetHy2LiveUpdate reports whether Hysteria2 user changes should be applied with
+// a live user-map swap (no dropped connections) instead of removing+re-adding
+// the inbound. Defaults to true; flip to false to fall back to the legacy
+// RestartInbounds behaviour (e.g. when running against an unpatched core).
+func (s *SettingService) GetHy2LiveUpdate() (bool, error) {
+	return s.getBool("hy2LiveUpdate")
 }
 
 func (s *SettingService) GetSubJsonExt() (string, error) {

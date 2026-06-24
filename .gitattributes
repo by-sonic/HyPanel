@@ -1,0 +1,4 @@
+# Shell scripts must use LF: a CRLF in a shebang breaks `exec` inside Linux
+# containers, even when the repo is checked out on Windows (autocrlf).
+*.sh text eol=lf
+entrypoint.sh text eol=lf

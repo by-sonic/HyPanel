@@ -42,6 +42,8 @@ func (a *APIHandler) postHandler(c *gin.Context) {
 		a.ApiService.ChangePass(c)
 	case "save":
 		a.ApiService.Save(c, loginUser)
+	case "ban":
+		a.ApiService.BanClient(c, loginUser)
 	case "restartApp":
 		a.ApiService.RestartApp(c)
 	case "restartSb":

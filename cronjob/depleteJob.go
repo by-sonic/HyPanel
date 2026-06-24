@@ -22,9 +22,9 @@ func (s *DepleteJob) Run() {
 		return
 	}
 	if len(inboundIds) > 0 {
-		err := s.InboundService.RestartInbounds(database.GetDB(), inboundIds)
+		err := s.InboundService.ApplyUserChanges(database.GetDB(), inboundIds)
 		if err != nil {
-			logger.Error("unable to restart inbounds: ", err)
+			logger.Error("unable to apply inbound user changes: ", err)
 		}
 	}
 }
