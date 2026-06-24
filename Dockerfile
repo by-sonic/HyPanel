@@ -30,13 +30,24 @@ RUN CRONET_ARCH="$TARGETARCH" && \
     wget -q -O ./libcronet.so "$CRONET_URL" && \
     chmod 755 ./libcronet.so
 
+# HyPanel: reconstruct the patched sing-box/sing-quic forks and warm the module
+# cache in a layer keyed only on go.mod/go.sum + forks/ (the patches), so editing
+# regular source below does NOT re-clone the upstreams or re-download modules.
+# Ф1 (restart-free Hysteria2 user add/ban) calls methods upstream doesn't expose;
+# without this overlay the build fails. See forks/README.md. setup.sh is
+# idempotent and rewrites the go.mod replace directives to ./forks/*.
+COPY go.mod go.sum ./
+COPY forks/ ./forks/
+RUN bash forks/setup.sh && go mod download
+
 COPY . .
 COPY --from=front-builder /app/dist/ /app/web/html/
 
-# HyPanel: reconstruct the patched sing-box/sing-quic forks and repoint go.mod at
-# them before building. Ф1 (restart-free Hysteria2 user add/ban + instant kick)
-# calls methods upstream does not expose; without this the build fails. See
-# forks/README.md. setup.sh is idempotent and rewrites the replace directives.
+# Re-apply the overlay + replace directives: COPY . . above restored the upstream
+# go.mod and the host's (clone-less) forks/ tree. setup.sh is idempotent — the
+# clones from the cached layer survive (COPY merges, never deletes), so this only
+# re-checkouts, re-overlays the patched files, and repoints go.mod; then tidy
+# reconciles go.sum against the now-present full source.
 RUN bash forks/setup.sh && go mod tidy
 
 RUN if [ "$TARGETARCH" = "arm" ]; then export GOARM=7; [ "$TARGETVARIANT" = "v6" ] && export GOARM=6; fi; \

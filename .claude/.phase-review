@@ -1,8 +1,9 @@
-phase-review: feat/hy2-live-users — Ф1 restart-free hysteria2 user mgmt
-reviewers: code-reviewer + go-reviewer (parallel). security review intentionally SKIPPED per standing user rule.
-verdict: CRITICAL/HIGH addressed.
-  - fixed: auth-field data race (authAccess mutex), BanClient tx.Begin check + commit-before-apply,
-    unban over-quota guard, silent no-op on missing inbound tag, hand-rolled JSON -> json.Marshal,
-    CRLF->LF entrypoint/build scripts (broken image from Windows checkout).
-  - dismissed false-positive: "go.mod won't compile" (reviewer didn't run forks/setup.sh; full image builds, exit 0).
-verification: docker build OK; go test ./service (3 tests) PASS; API e2e 7/7 PASS; container boots, sing-box core starts.
+phase-review: feat/hy2-live-users — Dockerfile fork-clone caching (task #5)
+change: build-config only — move fork clone + `go mod download` into a layer keyed
+  on go.mod/go.sum + forks/, before COPY . ., so editing regular source no longer
+  re-clones upstreams or re-downloads modules.
+review: self-reviewed (Dockerfile layer reorder, no app-code change). Full agent
+  review intentionally skipped as disproportionate; security review skipped per
+  standing user rule.
+verification: docker build OK (exit 0); clone is step 7/11 before COPY . .;
+  container boots (web server + sing-box core up, no errors/panic). Same binary.
