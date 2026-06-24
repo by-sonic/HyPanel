@@ -1,9 +1,21 @@
-phase-review: feat/hy2-live-users — Dockerfile fork-clone caching (task #5)
-change: build-config only — move fork clone + `go mod download` into a layer keyed
-  on go.mod/go.sum + forks/, before COPY . ., so editing regular source no longer
-  re-clones upstreams or re-downloads modules.
-review: self-reviewed (Dockerfile layer reorder, no app-code change). Full agent
-  review intentionally skipped as disproportionate; security review skipped per
-  standing user rule.
-verification: docker build OK (exit 0); clone is step 7/11 before COPY . .;
-  container boots (web server + sing-box core up, no errors/panic). Same binary.
+phase-review: feat/hy2-live-users — Ф1 ban/unban client FRONTEND (Vue3/Vuetify/Pinia)
+change: frontend submodule — Data.banClient() (POST api/ban, form-encoded, setNewData),
+  Client.banned/bannedAt types, Clients.vue ban/unban action icons + confirm menu,
+  ban/unban i18n keys in all 6 locales (en/fa/ru/vi/zhcn/zhtw).
+review: code-reviewer + vue-reviewer ran IN PARALLEL. security review skipped per
+  standing user rule (no-security-checks). Verdicts: code-reviewer APPROVE (0 CRIT/HIGH,
+  1 MEDIUM); vue-reviewer BLOCK (1 HIGH + 3 MEDIUM + 1 LOW), root cause = overlay
+  arrays indexed by position.
+fixes applied (all CRIT/HIGH/relevant findings resolved):
+  - HIGH + MEDIUM(findIndex instability): migrated BOTH delOverlay & banOverlay from
+    fixed-length Array to id-keyed Record<number,boolean>; template binds [item.id];
+    removes per-render findIndex.
+  - MEDIUM(toggleBan no early-exit): added `if (!clients.some(id)) return` guard.
+  - LOW(dynamic i18n key): switched to ternary literal keys (statically extractable).
+  - MEDIUM(v-tooltip in v-menu activator): intentionally KEPT — v-menu activates on
+    click, v-tooltip on mouseenter; different events, no real conflict (standalone
+    unban tooltip already works). Adjudicated against vue-reviewer's claim.
+verification: `docker build --target front-builder` OK (exit 0); `vue-tsc --noEmit`
+  passed (id-keyed Records type-clean), vite built 807 modules in 6.16s. Backend
+  contract confirmed present: api/ban -> ConfigService.BanClient (txn, audit, kick),
+  model banned/bannedAt JSON, assembly filters enable=1 AND banned=0.
