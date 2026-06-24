@@ -5,10 +5,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/alireza0/s-ui/database"
-	"github.com/alireza0/s-ui/logger"
-	"github.com/alireza0/s-ui/service"
-	"github.com/alireza0/s-ui/util"
+	"github.com/by-sonic/HyPanel/database"
+	"github.com/by-sonic/HyPanel/logger"
+	"github.com/by-sonic/HyPanel/service"
+	"github.com/by-sonic/HyPanel/util"
 
 	"github.com/gin-gonic/gin"
 )
@@ -246,7 +246,7 @@ func (a *ApiService) GetDb(c *gin.Context) {
 		return
 	}
 	c.Header("Content-Type", "application/octet-stream")
-	c.Header("Content-Disposition", "attachment; filename=s-ui_"+time.Now().Format("20060102-150405")+".db")
+	c.Header("Content-Disposition", "attachment; filename=hypanel_"+time.Now().Format("20060102-150405")+".db")
 	c.Writer.Write(db)
 }
 

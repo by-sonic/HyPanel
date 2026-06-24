@@ -18,7 +18,7 @@ var (
 )
 
 func InitLogger(level logging.Level) {
-	newLogger := logging.MustGetLogger("s-ui")
+	newLogger := logging.MustGetLogger("hypanel")
 	var err error
 	var backend logging.Backend
 	var format logging.Formatter
@@ -47,7 +47,7 @@ func InitLogger(level logging.Level) {
 
 	backendFormatter := logging.NewBackendFormatter(backend, format)
 	backendLeveled := logging.AddModuleLevel(backendFormatter)
-	backendLeveled.SetLevel(level, "s-ui")
+	backendLeveled.SetLevel(level, "hypanel")
 	newLogger.SetBackend(backendLeveled)
 
 	logger = newLogger

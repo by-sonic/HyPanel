@@ -1,12 +1,12 @@
 [Unit]
-Description=s-ui Service
+Description=HyPanel Service
 After=network.target
 Wants=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/usr/local/s-ui/
-ExecStart=/usr/local/s-ui/sui
+WorkingDirectory=/usr/local/hypanel/
+ExecStart=/usr/local/hypanel/hypanel
 Restart=on-failure
 RestartSec=10s
 

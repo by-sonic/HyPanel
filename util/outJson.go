@@ -3,9 +3,9 @@ package util
 import (
 	"encoding/json"
 
-	"github.com/alireza0/s-ui/util/common"
+	"github.com/by-sonic/HyPanel/util/common"
 
-	"github.com/alireza0/s-ui/database/model"
+	"github.com/by-sonic/HyPanel/database/model"
 )
 
 // Fill Inbound's out_json

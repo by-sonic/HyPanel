@@ -36,7 +36,7 @@ func GetLogLevel() LogLevel {
 	if IsDebug() {
 		return Debug
 	}
-	logLevel := os.Getenv("SUI_LOG_LEVEL")
+	logLevel := os.Getenv("HYPANEL_LOG_LEVEL")
 	if logLevel == "" {
 		return Info
 	}
@@ -44,19 +44,19 @@ func GetLogLevel() LogLevel {
 }
 
 func IsDebug() bool {
-	return os.Getenv("SUI_DEBUG") == "true"
+	return os.Getenv("HYPANEL_DEBUG") == "true"
 }
 
 func GetDBFolderPath() string {
-	dbFolderPath := os.Getenv("SUI_DB_FOLDER")
+	dbFolderPath := os.Getenv("HYPANEL_DB_FOLDER")
 	if dbFolderPath == "" {
 		dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 		if err != nil {
 			// Cross-platform fallback path
 			if runtime.GOOS == "windows" {
-				return "C:\\Program Files\\s-ui\\db"
+				return "C:\\Program Files\\hypanel\\db"
 			}
-			return "/usr/local/s-ui/db"
+			return "/usr/local/hypanel/db"
 		}
 		dbFolderPath = filepath.Join(dir, "db")
 	}

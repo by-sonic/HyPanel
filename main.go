@@ -6,8 +6,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/alireza0/s-ui/app"
-	"github.com/alireza0/s-ui/cmd"
+	"github.com/by-sonic/HyPanel/app"
+	"github.com/by-sonic/HyPanel/cmd"
 )
 
 func runApp() {

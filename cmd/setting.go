@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alireza0/s-ui/config"
-	"github.com/alireza0/s-ui/database"
-	"github.com/alireza0/s-ui/service"
+	"github.com/by-sonic/HyPanel/config"
+	"github.com/by-sonic/HyPanel/database"
+	"github.com/by-sonic/HyPanel/service"
 
 	"github.com/shirou/gopsutil/v4/net"
 )

@@ -1,8 +1,8 @@
 package cronjob
 
 import (
-	"github.com/alireza0/s-ui/logger"
-	"github.com/alireza0/s-ui/service"
+	"github.com/by-sonic/HyPanel/logger"
+	"github.com/by-sonic/HyPanel/service"
 )
 
 type DelStatsJob struct {

@@ -1,17 +1,25 @@
-phase-review: feat/hy2-live-users — Rebrand to standalone HyPanel + SEO foundation (phase B)
-change: identity rebrand s-ui/S-UI -> HyPanel (user-facing only, no internal identifiers):
-  frontend index.html <title>+SEO meta (description/robots noindex/theme-color),
-  App.vue document.title, router DEFAULT_TITLE, Drawer.vue brand, Main.vue footer;
-  cmd/cmd.go version banner; full SEO rewrite of README.md (keyword-rich intro,
-  positioning vs 3x-ui/s-ui, feature/protocol tables, Docker quickstart, Credits +
-  GPL attribution preserved). git: origin renamed -> upstream (keep-history own-repo).
-review: self-reviewed — proportionate for branding/docs/markup string changes (no
-  logic change), consistent with the prior Dockerfile-caching precedent in this file.
-  security review skipped per standing user rule (no-security-checks).
-GPL: LICENSE untouched; README Credits section preserves s-ui (alireza0) + sing-box
-  (SagerNet) attribution as required by GPL-3 for a derivative work.
-deferred (phase 2, build-risky): go module path, binary name `sui`, DB/cookie/logger
-  ids, SUI_* env vars, service paths — kept until clean republish.
-verification: docker build --target front-builder expected exit 0 (vue-tsc + vite);
-  cmd.go change is a string literal (zero compile risk). Repo description + topics +
-  remote create/push pending user `gh auth login` (gh not authed).
+phase-review: feat/hy2-live-users — Phase-2 internal identity rename s-ui -> HyPanel
+change: internal identifiers (not just UI). Go module path github.com/alireza0/s-ui ->
+  github.com/by-sonic/HyPanel (go.mod + 54 .go files / 138 imports; replace directives
+  intact). Binary sui -> hypanel (Dockerfile, build.sh, entrypoint, launchers, systemd;
+  file renames s-ui.service->hypanel.service, s-ui.sh->hypanel.sh, windows/s-ui-windows.*
+  ->hypanel-windows.*). Internal ids: session cookie, logger channel, config name
+  (DB->hypanel.db), backup prefix, env SUI_->HYPANEL_, paths /usr/local/s-ui->
+  /usr/local/hypanel. Repo URLs -> by-sonic/HyPanel in scripts/docs/workflows.
+review: SELF-REVIEW — proportionate for a mechanical identity rename (no logic change),
+  consistent with prior Dockerfile precedent. Full agent panel skipped as
+  disproportionate for an 80-file string sweep; security review skipped per standing
+  user rule (no-security-checks). The rename was executed by a delegated agent and
+  independently verified here.
+verification: docker build -t hypanel:dev . => EXIT 0 (in-container Go compile is the
+  definitive test for the module-path rename — zero missed imports; binary built as
+  /app/hypanel). Cross-file contracts the compiler can't catch, checked manually:
+  (1) no residual SUI_ env (no half-rename); HYPANEL_ present in both config.go reader
+  and entrypoint/runSUI setters; (2) cookie lockstep web.go Sessions("hypanel") <->
+  router.ts startsWith('hypanel='); (3) warp.go "model":"s-ui" PRESERVED (WARP API);
+  (4) LICENSE untouched; (5) zero alireza0/s-ui in .go; go.mod module + 2 replaces intact.
+preserved (GPL/upstream): LICENSE, frontend/LICENSE, README Credits (s-ui+sing-box),
+  Dockerfile author label, cipher_suites substring.
+notes: existing local db/s-ui.db NOT auto-migrated to hypanel.db (dev fork, acceptable).
+  Registry images (alireza7/s-ui, ghcr.io/alireza0/s-ui) left until HyPanel publishes
+  its own image (no registry yet).

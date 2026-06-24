@@ -3,14 +3,14 @@ package app
 import (
 	"log"
 
-	"github.com/alireza0/s-ui/config"
-	"github.com/alireza0/s-ui/core"
-	"github.com/alireza0/s-ui/cronjob"
-	"github.com/alireza0/s-ui/database"
-	"github.com/alireza0/s-ui/logger"
-	"github.com/alireza0/s-ui/service"
-	"github.com/alireza0/s-ui/sub"
-	"github.com/alireza0/s-ui/web"
+	"github.com/by-sonic/HyPanel/config"
+	"github.com/by-sonic/HyPanel/core"
+	"github.com/by-sonic/HyPanel/cronjob"
+	"github.com/by-sonic/HyPanel/database"
+	"github.com/by-sonic/HyPanel/logger"
+	"github.com/by-sonic/HyPanel/service"
+	"github.com/by-sonic/HyPanel/sub"
+	"github.com/by-sonic/HyPanel/web"
 
 	"github.com/op/go-logging"
 )

@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/alireza0/s-ui/database/model"
+	"github.com/by-sonic/HyPanel/database/model"
 
 	"gorm.io/gorm"
 )
@@ -19,7 +19,7 @@ type InboundData struct {
 }
 
 func moveJsonToDb(db *gorm.DB) error {
-	binFolderPath := os.Getenv("SUI_BIN_FOLDER")
+	binFolderPath := os.Getenv("HYPANEL_BIN_FOLDER")
 	if binFolderPath == "" {
 		binFolderPath = "bin"
 	}

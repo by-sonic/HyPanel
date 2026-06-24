@@ -16,7 +16,7 @@ on:
       - '**.go'
       - 'go.mod'
       - 'go.sum'
-      - 's-ui.service'
+      - 'hypanel.service'
 
 env:
   NODE_VERSION: "25"
@@ -164,28 +164,27 @@ jobs:
             echo "CGO_LDFLAGS=--sysroot=$SYSROOT -static" >> $GITHUB_ENV
           fi
 
-      - name: Build s-ui
+      - name: Build hypanel
         run: |
           set -e
           BUILD_TAGS="with_quic,with_grpc,with_utls,with_acme,with_gvisor,badlinkname,tfogo_checklinkname0,with_tailscale"
           [ "${{ matrix.naive }}" = "true" ] && BUILD_TAGS="${BUILD_TAGS},with_naive_outbound,with_musl"
-          go build -ldflags="-w -s -checklinkname=0 -linkmode external -extldflags '-static'" -tags "$BUILD_TAGS" -o sui main.go
-          file sui
-          ldd sui 2>/dev/null || echo "Static binary confirmed"
+          mkdir hypanel
+          go build -ldflags="-w -s -checklinkname=0 -linkmode external -extldflags '-static'" -tags "$BUILD_TAGS" -o hypanel/hypanel main.go
+          file hypanel/hypanel
+          ldd hypanel/hypanel 2>/dev/null || echo "Static binary confirmed"
 
-          mkdir s-ui
-          cp sui s-ui/
-          cp s-ui.service s-ui/
-          cp s-ui.sh s-ui/
+          cp hypanel.service hypanel/
+          cp hypanel.sh hypanel/
 
       - name: Package
-        run: tar -zcvf s-ui-linux-${{ matrix.platform }}.tar.gz s-ui
+        run: tar -zcvf hypanel-linux-${{ matrix.platform }}.tar.gz hypanel
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
-          name: s-ui-linux-${{ matrix.platform }}
-          path: ./s-ui-linux-${{ matrix.platform }}.tar.gz
+          name: hypanel-linux-${{ matrix.platform }}
+          path: ./hypanel-linux-${{ matrix.platform }}.tar.gz
           retention-days: 30
 
       - name: Upload to Release
@@ -196,7 +195,7 @@ jobs:
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.event_name == 'release' && github.event.release.tag_name || github.ref_name }}
-          file: s-ui-linux-${{ matrix.platform }}.tar.gz
-          asset_name: s-ui-linux-${{ matrix.platform }}.tar.gz
+          file: hypanel-linux-${{ matrix.platform }}.tar.gz
+          asset_name: hypanel-linux-${{ matrix.platform }}.tar.gz
           prerelease: true
           overwrite: true

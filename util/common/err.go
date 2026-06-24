@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/alireza0/s-ui/logger"
+	"github.com/by-sonic/HyPanel/logger"
 )
 
 func NewErrorf(format string, a ...interface{}) error {

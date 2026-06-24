@@ -91,7 +91,7 @@ jobs:
           # Install zip
           choco install zip -y
 
-      - name: Build s-ui
+      - name: Build hypanel
         shell: bash
         run: |
           export CGO_ENABLED=${{ matrix.cgo }}
@@ -102,28 +102,28 @@ jobs:
           go version
           go env GOOS GOARCH
           
-          go build -ldflags="-w -s -checklinkname=0" -tags "${{ env.TAGS }}" -o sui.exe main.go
-          file sui.exe
+          go build -ldflags="-w -s -checklinkname=0" -tags "${{ env.TAGS }}" -o hypanel.exe main.go
+          file hypanel.exe
           
-          mkdir s-ui-windows
-          cp sui.exe s-ui-windows/
-          cp -r windows/* s-ui-windows/
+          mkdir hypanel-windows
+          cp hypanel.exe hypanel-windows/
+          cp -r windows/* hypanel-windows/
 
       - name: Download libcronet-go
         shell: bash
         run: |
-          curl -qsL -o s-ui-windows/libcronet.dll ${{ env.LIBCRONET_BASE_URL }}/libcronet-windows-${{ matrix.arch }}.dll
+          curl -qsL -o hypanel-windows/libcronet.dll ${{ env.LIBCRONET_BASE_URL }}/libcronet-windows-${{ matrix.arch }}.dll
 
       - name: Package
         shell: bash
         run: |
-          zip -r "s-ui-windows-${{ matrix.arch }}.zip" s-ui-windows
+          zip -r "hypanel-windows-${{ matrix.arch }}.zip" hypanel-windows
 
       - name: Upload files to Artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: s-ui-windows-${{ matrix.arch }}
-          path: ./s-ui-windows-${{ matrix.arch }}.zip
+          name: hypanel-windows-${{ matrix.arch }}
+          path: ./hypanel-windows-${{ matrix.arch }}.zip
           retention-days: 30
 
       - name: Upload to Release
@@ -134,7 +134,7 @@ jobs:
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref }}
-          file: s-ui-windows-${{ matrix.arch }}.zip
-          asset_name: s-ui-windows-${{ matrix.arch }}.zip
+          file: hypanel-windows-${{ matrix.arch }}.zip
+          asset_name: hypanel-windows-${{ matrix.arch }}.zip
           prerelease: true
           overwrite: true

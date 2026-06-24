@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/alireza0/s-ui/database"
-	"github.com/alireza0/s-ui/database/model"
-	"github.com/alireza0/s-ui/logger"
-	"github.com/alireza0/s-ui/util/common"
+	"github.com/by-sonic/HyPanel/database"
+	"github.com/by-sonic/HyPanel/database/model"
+	"github.com/by-sonic/HyPanel/logger"
+	"github.com/by-sonic/HyPanel/util/common"
 )
 
 type UserService struct {

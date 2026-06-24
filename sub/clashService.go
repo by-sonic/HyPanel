@@ -3,9 +3,9 @@ package sub
 import (
 	"strings"
 
-	"github.com/alireza0/s-ui/logger"
-	"github.com/alireza0/s-ui/service"
-	"github.com/alireza0/s-ui/util"
+	"github.com/by-sonic/HyPanel/logger"
+	"github.com/by-sonic/HyPanel/service"
+	"github.com/by-sonic/HyPanel/util"
 
 	"gopkg.in/yaml.v3"
 )

@@ -33,8 +33,8 @@ Please be respectful and constructive when interacting with maintainers and othe
 ### Clone and Submodules
 
 ```bash
-git clone https://github.com/alireza0/s-ui
-cd s-ui
+git clone https://github.com/by-sonic/HyPanel
+cd HyPanel
 git submodule update --init --recursive
 ```
 
@@ -48,13 +48,13 @@ The **frontend** lives in a submodule. If you only work on the backend, you can 
    ./runSUI.sh
    ```
 
-   This runs `./build.sh` then `SUI_DB_FOLDER="db" SUI_DEBUG=true ./sui`.
+   This runs `./build.sh` then `HYPANEL_DB_FOLDER="db" HYPANEL_DEBUG=true ./hypanel`.
 
 2. Or build manually:
 
    ```bash
    ./build.sh
-   SUI_DB_FOLDER=db SUI_DEBUG=true ./sui
+   HYPANEL_DB_FOLDER=db HYPANEL_DEBUG=true ./hypanel
    ```
 
    Default panel: **http://localhost:2095/app/** (user: `admin`, password: `admin` — change in production).
@@ -76,13 +76,13 @@ The **frontend** lives in a submodule. If you only work on the backend, you can 
    mkdir -p web/html
    rm -rf web/html/*
    cp -R frontend/dist/* web/html/
-   go build -ldflags "-w -s" -tags "with_quic,with_grpc,with_utls,with_acme,with_gvisor,with_tailscale" -o sui main.go
+   go build -ldflags "-w -s" -tags "with_quic,with_grpc,with_utls,with_acme,with_gvisor,with_tailscale" -o hypanel main.go
    ```
 
 3. Run:
 
    ```bash
-   SUI_DB_FOLDER=db SUI_DEBUG=true ./sui
+   HYPANEL_DB_FOLDER=db HYPANEL_DEBUG=true ./hypanel
    ```
 
 ### Build Tags
@@ -97,18 +97,18 @@ Use the same tags when building locally if you need feature parity with releases
 
 | Variable       | Description                    | Example   |
 |----------------|--------------------------------|-----------|
-| `SUI_DB_FOLDER`| Directory for SQLite DB files  | `db`      |
-| `SUI_DEBUG`    | Enable debug mode              | `true`    |
-| `SUI_LOG_LEVEL`| Log level                      | `debug`   |
-| `SUI_BIN_FOLDER` | Directory for binaries       | `bin`     |
+| `HYPANEL_DB_FOLDER`| Directory for SQLite DB files  | `db`      |
+| `HYPANEL_DEBUG`    | Enable debug mode              | `true`    |
+| `HYPANEL_LOG_LEVEL`| Log level                      | `debug`   |
+| `HYPANEL_BIN_FOLDER` | Directory for binaries       | `bin`     |
 
 ### Docker (optional)
 
 ```bash
-git clone https://github.com/alireza0/s-ui
-cd s-ui
+git clone https://github.com/by-sonic/HyPanel
+cd HyPanel
 git submodule update --init --recursive
-docker build -t s-ui .
+docker build -t hypanel .
 # or: docker compose up -d
 ```
 
@@ -167,7 +167,7 @@ When adding new features, place code in the appropriate layer (handler → servi
 1. **Build verification**: Before submitting a PR, ensure the project builds:
 
    ```bash
-   go build -ldflags "-w -s" -tags "with_quic,with_grpc,with_utls,with_acme,with_gvisor,with_tailscale" -o sui main.go
+   go build -ldflags "-w -s" -tags "with_quic,with_grpc,with_utls,with_acme,with_gvisor,with_tailscale" -o hypanel main.go
    ```
 
 2. **Manual testing**: Run with `./runSUI.sh`, test the changed area (panel, API, subscription, etc.).

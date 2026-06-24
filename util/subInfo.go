@@ -3,7 +3,7 @@ package util
 import (
 	"fmt"
 
-	"github.com/alireza0/s-ui/database/model"
+	"github.com/by-sonic/HyPanel/database/model"
 )
 
 func GetHeaders(client *model.Client, updateInterval int) []string {

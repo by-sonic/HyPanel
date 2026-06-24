@@ -1,9 +1,9 @@
 ---
 services:
-  s-ui:
+  hypanel:
     image: alireza7/s-ui
-    container_name: s-ui
-    hostname: "s-ui"
+    container_name: hypanel
+    hostname: "hypanel"
     volumes:
       - "./db:/app/db"
       - "./cert:/app/cert"
@@ -13,10 +13,9 @@ services:
       - "2095:2095"
       - "2096:2096"
     networks:
-      - s-ui
+      - hypanel
     entrypoint: "./entrypoint.sh"
 
 networks:
-  s-ui:
+  hypanel:
     driver: bridge
-  

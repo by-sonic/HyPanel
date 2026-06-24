@@ -2,7 +2,7 @@
 setlocal enabledelayedexpansion
 
 echo ========================================
-echo S-UI Windows Uninstaller
+echo HyPanel Windows Uninstaller
 echo ========================================
 
 REM Check if running as Administrator
@@ -15,17 +15,17 @@ if %errorLevel% neq 0 (
 )
 
 REM Set installation directory
-set "INSTALL_DIR=C:\Program Files\s-ui"
-set "SERVICE_NAME=s-ui"
+set "INSTALL_DIR=C:\Program Files\hypanel"
+set "SERVICE_NAME=hypanel"
 
-echo Uninstalling S-UI from: %INSTALL_DIR%
+echo Uninstalling HyPanel from: %INSTALL_DIR%
 
 REM Stop and remove Windows Service
-if exist "%INSTALL_DIR%\s-ui-service.exe" (
+if exist "%INSTALL_DIR%\hypanel-service.exe" (
     echo Stopping and removing Windows Service...
     net stop %SERVICE_NAME% >nul 2>&1
     cd /d "%INSTALL_DIR%"
-    s-ui-service.exe uninstall >nul 2>&1
+    hypanel-service.exe uninstall >nul 2>&1
     if %errorLevel% equ 0 (
         echo Service removed successfully
     ) else (
@@ -36,14 +36,14 @@ if exist "%INSTALL_DIR%\s-ui-service.exe" (
 REM Remove desktop shortcut
 echo Removing desktop shortcut...
 set "DESKTOP=%USERPROFILE%\Desktop"
-if exist "%DESKTOP%\S-UI.lnk" (
-    del "%DESKTOP%\S-UI.lnk" >nul 2>&1
+if exist "%DESKTOP%\HyPanel.lnk" (
+    del "%DESKTOP%\HyPanel.lnk" >nul 2>&1
     echo Desktop shortcut removed
 )
 
 REM Remove Start Menu shortcut
 echo Removing Start Menu shortcut...
-set "START_MENU=%APPDATA%\Microsoft\Windows\Start Menu\Programs\S-UI"
+set "START_MENU=%APPDATA%\Microsoft\Windows\Start Menu\Programs\HyPanel"
 if exist "%START_MENU%" (
     rmdir /s /q "%START_MENU%" >nul 2>&1
     echo Start Menu shortcut removed
@@ -51,7 +51,7 @@ if exist "%START_MENU%" (
 
 REM Remove environment variable
 echo Removing environment variable...
-reg delete "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v SUI_HOME /f >nul 2>&1
+reg delete "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v HYPANEL_HOME /f >nul 2>&1
 
 REM Ask user if they want to keep data
 echo.
@@ -59,9 +59,9 @@ set /p keep_data="Do you want to keep your data (database, logs, certificates)? 
 if /i "%keep_data%"=="y" (
     echo Keeping data files...
     REM Remove only executable and service files
-    if exist "%INSTALL_DIR%\sui.exe" del "%INSTALL_DIR%\sui.exe" >nul 2>&1
-    if exist "%INSTALL_DIR%\s-ui-service.exe" del "%INSTALL_DIR%\s-ui-service.exe" >nul 2>&1
-    if exist "%INSTALL_DIR%\s-ui-service.xml" del "%INSTALL_DIR%\s-ui-service.xml" >nul 2>&1
+    if exist "%INSTALL_DIR%\hypanel.exe" del "%INSTALL_DIR%\hypanel.exe" >nul 2>&1
+    if exist "%INSTALL_DIR%\hypanel-service.exe" del "%INSTALL_DIR%\hypanel-service.exe" >nul 2>&1
+    if exist "%INSTALL_DIR%\hypanel-service.xml" del "%INSTALL_DIR%\hypanel-service.xml" >nul 2>&1
     if exist "%INSTALL_DIR%\winsw.exe" del "%INSTALL_DIR%\winsw.exe" >nul 2>&1
     if exist "%INSTALL_DIR%\*.bat" del "%INSTALL_DIR%\*.bat" >nul 2>&1
     if exist "%INSTALL_DIR%\*.xml" del "%INSTALL_DIR%\*.xml" >nul 2>&1
@@ -82,21 +82,21 @@ if /i "%keep_data%"=="y" (
 
 REM Remove firewall rules
 echo Removing firewall rules...
-netsh advfirewall firewall delete rule name="S-UI Panel" >nul 2>&1
-netsh advfirewall firewall delete rule name="S-UI Subscription" >nul 2>&1
+netsh advfirewall firewall delete rule name="HyPanel Panel" >nul 2>&1
+netsh advfirewall firewall delete rule name="HyPanel Subscription" >nul 2>&1
 
 echo.
 echo ========================================
 echo Uninstallation completed!
 echo ========================================
 echo.
-echo S-UI has been uninstalled from your system.
+echo HyPanel has been uninstalled from your system.
 echo.
 if /i "%keep_data%"=="y" (
     echo Your data has been preserved in: %INSTALL_DIR%
     echo You can safely delete this directory if you no longer need the data.
 )
 echo.
-echo Thank you for using S-UI!
+echo Thank you for using HyPanel!
 echo.
 pause

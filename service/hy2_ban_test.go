@@ -20,9 +20,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alireza0/s-ui/core"
-	"github.com/alireza0/s-ui/database"
-	"github.com/alireza0/s-ui/database/model"
+	"github.com/by-sonic/HyPanel/core"
+	"github.com/by-sonic/HyPanel/database"
+	"github.com/by-sonic/HyPanel/database/model"
 )
 
 // setupTestDB points the package-global DB at a fresh temp SQLite file and runs

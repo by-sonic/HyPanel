@@ -1,8 +1,8 @@
 #!/bin/sh
 
-DB_PATH="${SUI_DB_FOLDER:-/app/db}/s-ui.db"
+DB_PATH="${HYPANEL_DB_FOLDER:-/app/db}/hypanel.db"
 if [ -f "$DB_PATH" ]; then
-	./sui migrate
+	./hypanel migrate
 fi
 
-exec ./sui
+exec ./hypanel

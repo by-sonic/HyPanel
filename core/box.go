@@ -7,7 +7,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/alireza0/s-ui/util/common"
+	"github.com/by-sonic/HyPanel/util/common"
 
 	"github.com/sagernet/sing-box/adapter"
 	"github.com/sagernet/sing-box/adapter/endpoint"

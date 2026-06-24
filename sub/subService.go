@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alireza0/s-ui/database"
-	"github.com/alireza0/s-ui/database/model"
-	"github.com/alireza0/s-ui/service"
-	"github.com/alireza0/s-ui/util"
+	"github.com/by-sonic/HyPanel/database"
+	"github.com/by-sonic/HyPanel/database/model"
+	"github.com/by-sonic/HyPanel/service"
+	"github.com/by-sonic/HyPanel/util"
 )
 
 type SubService struct {

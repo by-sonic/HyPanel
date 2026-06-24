@@ -4,7 +4,7 @@ release/
 backup/
 bin/
 db/
-sui
+hypanel
 web/html
 main
 tmp
@@ -22,10 +22,10 @@ tmp
 # Windows build artifacts
 *.exe
 *.zip
-s-ui-windows/
-sui-*.exe
-sui-*.zip
-windows/sui-*.exe
+hypanel-windows/
+hypanel-*.exe
+hypanel-*.zip
+windows/hypanel-*.exe
 
 # Editor directories and files
 .idea

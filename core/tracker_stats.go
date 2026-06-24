@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alireza0/s-ui/database/model"
+	"github.com/by-sonic/HyPanel/database/model"
 
 	"github.com/sagernet/sing-box/adapter"
 	"github.com/sagernet/sing/common/atomic"

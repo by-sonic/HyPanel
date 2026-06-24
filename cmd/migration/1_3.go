@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/alireza0/s-ui/database/model"
+	"github.com/by-sonic/HyPanel/database/model"
 
 	"gorm.io/gorm"
 )

@@ -1,4 +1,4 @@
-module github.com/alireza0/s-ui
+module github.com/by-sonic/HyPanel
 
 go 1.26.4
 

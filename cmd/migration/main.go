@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/alireza0/s-ui/config"
+	"github.com/by-sonic/HyPanel/config"
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"

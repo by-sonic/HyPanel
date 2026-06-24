@@ -85,13 +85,13 @@ Then open `http://<server-ip>:2095/app/` and sign in with `admin` / `admin`.
 
 | Variable       |                      Type                      | Default  |
 | -------------- | :--------------------------------------------: | :------- |
-| SUI_LOG_LEVEL  | `"debug"` \| `"info"` \| `"warn"` \| `"error"` | `"info"` |
-| SUI_DEBUG      |                   `boolean`                    | `false`  |
-| SUI_BIN_FOLDER |                    `string`                    | `"bin"`  |
-| SUI_DB_FOLDER  |                    `string`                    | `"db"`   |
-| SINGBOX_API    |                    `string`                    | -        |
+| HYPANEL_LOG_LEVEL  | `"debug"` \| `"info"` \| `"warn"` \| `"error"` | `"info"` |
+| HYPANEL_DEBUG      |                   `boolean`                    | `false`  |
+| HYPANEL_BIN_FOLDER |                    `string`                    | `"bin"`  |
+| HYPANEL_DB_FOLDER  |                    `string`                    | `"db"`   |
+| SINGBOX_API        |                    `string`                    | -        |
 
-> Note: environment variables still use the `SUI_` prefix inherited from upstream; they will be renamed in a future release.
+> Note: environment variables use the `HYPANEL_` prefix.
 
 </details>
 
@@ -125,8 +125,8 @@ cd frontend && npm install && npm run build && cd ..
 rm -fr web/html/* && cp -R frontend/dist/ web/html/
 
 # Backend (Linux, CGO)
-go build -o sui main.go
-./sui
+go build -o hypanel main.go
+./hypanel
 ```
 
 The supported and reproducible build path is the Docker build above.
