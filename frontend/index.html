@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" href="assets/favicon.ico" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="HyPanel — self-hosted, Hysteria2-first VPN & proxy control panel powered by sing-box." />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="theme-color" content="#1697f6" />
+  <script>
+    window.BASE_URL = "{{ .BASE_URL }}"
+
+    // Dev Mode
+    if (window.BASE_URL.charAt(0) === '{') window.BASE_URL = "/app/"
+  </script>
+  <title>HyPanel</title>
+</head>
+
+<body>
+  <div id="app"></div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+
+</html>

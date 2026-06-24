@@ -64,9 +64,8 @@ If you have used **3x-ui** or **s-ui**, HyPanel will feel familiar: per-client t
 > A one-line installer and prebuilt images ship with the first tagged release. Until then, build the image from source:
 
 ```sh
-git clone https://github.com/OWNER/HyPanel
+git clone https://github.com/by-sonic/HyPanel
 cd HyPanel
-git submodule update --init --recursive
 docker build -t hypanel .
 
 docker run -itd \
@@ -118,7 +117,7 @@ certbot certonly --standalone --register-unsafely-without-email --non-interactiv
 <details>
   <summary>Click for details</summary>
 
-The backend embeds sing-box and uses CGO; it is built on Linux. The frontend lives in the `frontend/` submodule (Vue 3 + Vuetify).
+The backend embeds sing-box and uses CGO; it is built on Linux. The frontend lives in the `frontend/` directory (Vue 3 + Vuetify).
 
 ```sh
 # Frontend
