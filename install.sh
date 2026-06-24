@@ -1,188 +1,165 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# HyPanel one-command installer — Hysteria2-first VPN/proxy panel.
+#   bash <(curl -fsSL https://raw.githubusercontent.com/by-sonic/HyPanel/main/install.sh)
+# Idempotent: re-running repairs/updates the deployment.
+set -eu
+# NOTE: deliberately NOT using `pipefail` — `tr </dev/urandom | head -c N` makes
+# head close the pipe early, tr gets SIGPIPE, and under pipefail+errexit that would
+# silently abort the whole script at the random-credential step.
 
-red='\033[0;31m'
-green='\033[0;32m'
-yellow='\033[0;33m'
-plain='\033[0m'
+# ---- config (override via env) ----
+HYPANEL_DATA="${HYPANEL_DATA:-/opt/hypanel}"
+HYPANEL_CONTAINER="${HYPANEL_CONTAINER:-hypanel}"
+HYPANEL_PANEL_PORT="${HYPANEL_PANEL_PORT:-2095}"
+HYPANEL_SUB_PORT="${HYPANEL_SUB_PORT:-2096}"
+HYPANEL_REPO="${HYPANEL_REPO:-https://github.com/by-sonic/HyPanel}"
+GHCR_IMAGE="${HYPANEL_GHCR_IMAGE:-ghcr.io/by-sonic/hypanel:latest}"
+WD_FLAG="/tmp/.hypanel_ufw_watchdog.pid"
 
-cur_dir=$(pwd)
+c_info='\033[1;36m'; c_warn='\033[1;33m'; c_err='\033[1;31m'; c_ok='\033[1;32m'; c_off='\033[0m'
+log()  { printf "${c_info}[HyPanel]${c_off} %s\n" "$*"; }
+ok()   { printf "${c_ok}[HyPanel]${c_off} %s\n" "$*"; }
+warn() { printf "${c_warn}[HyPanel]${c_off} %s\n" "$*"; }
+err()  { printf "${c_err}[HyPanel]${c_off} %s\n" "$*" >&2; }
 
-# check root
-[[ $EUID -ne 0 ]] && echo -e "${red}Fatal error: ${plain} Please run this script with root privilege \n " && exit 1
+require_root() { [ "$(id -u)" -eq 0 ] || { err "Please run as root."; exit 1; }; }
 
-# Check OS and set release variable
-if [[ -f /etc/os-release ]]; then
-    source /etc/os-release
-    release=$ID
-elif [[ -f /usr/lib/os-release ]]; then
-    source /usr/lib/os-release
-    release=$ID
-else
-    echo "Failed to check the system OS, please contact the author!" >&2
-    exit 1
-fi
-echo "The OS release is: $release"
-
-arch() {
-    case "$(uname -m)" in
-    x86_64 | x64 | amd64) echo 'amd64' ;;
-    i*86 | x86) echo '386' ;;
-    armv8* | armv8 | arm64 | aarch64) echo 'arm64' ;;
-    armv7* | armv7 | arm) echo 'armv7' ;;
-    armv6* | armv6) echo 'armv6' ;;
-    armv5* | armv5) echo 'armv5' ;;
-    s390x) echo 's390x' ;;
-    *) echo -e "${green}Unsupported CPU architecture! ${plain}" && rm -f install.sh && exit 1 ;;
-    esac
+install_docker() {
+  if command -v docker >/dev/null 2>&1; then
+    log "Docker present ($(docker --version | awk '{print $3}' | tr -d ,))."
+  else
+    log "Installing Docker..."
+    curl -fsSL https://get.docker.com | sh
+  fi
+  systemctl enable --now docker >/dev/null 2>&1 || true
 }
 
-echo "arch: $(arch)"
-
-install_base() {
-    case "${release}" in
-    centos | almalinux | rocky | oracle)
-        yum -y update && yum install -y -q wget curl tar tzdata
-        ;;
-    fedora)
-        dnf -y update && dnf install -y -q wget curl tar tzdata
-        ;;
-    arch | manjaro | parch)
-        pacman -Syu && pacman -Syu --noconfirm wget curl tar tzdata
-        ;;
-    opensuse-tumbleweed)
-        zypper refresh && zypper -q install -y wget curl tar timezone
-        ;;
-    *)
-        apt-get update && apt-get install -y -q wget curl tar tzdata
-        ;;
-    esac
+resolve_image() {
+  if [ -n "${HYPANEL_IMAGE:-}" ]; then IMAGE="$HYPANEL_IMAGE"; log "Using image $IMAGE (override)."; return; fi
+  log "Fetching HyPanel image..."
+  if docker pull "$GHCR_IMAGE" >/dev/null 2>&1; then IMAGE="$GHCR_IMAGE"; ok "Pulled $IMAGE."; return; fi
+  if docker image inspect hypanel:dev >/dev/null 2>&1; then IMAGE="hypanel:dev"; warn "Registry unavailable; using local hypanel:dev."; return; fi
+  warn "No prebuilt image available; building from source (this is slow on small VPS)..."
+  local tmp; tmp="$(mktemp -d)"
+  git clone --depth 1 "$HYPANEL_REPO" "$tmp/src" >/dev/null 2>&1
+  ( cd "$tmp/src" && docker build -t hypanel:local . )
+  IMAGE="hypanel:local"; rm -rf "$tmp"; ok "Built $IMAGE."
 }
 
-config_after_install() {
-    echo -e "${yellow}Migration... ${plain}"
-    /usr/local/hypanel/hypanel migrate
-
-    echo -e "${yellow}Install/update finished! For security it's recommended to modify panel settings ${plain}"
-    read -p "Do you want to continue with the modification [y/n]? ": config_confirm
-    if [[ "${config_confirm}" == "y" || "${config_confirm}" == "Y" ]]; then
-        echo -e "Enter the ${yellow}panel port${plain} (leave blank for existing/default value):"
-        read config_port
-        echo -e "Enter the ${yellow}panel path${plain} (leave blank for existing/default value):"
-        read config_path
-
-        # Sub configuration
-        echo -e "Enter the ${yellow}subscription port${plain} (leave blank for existing/default value):"
-        read config_subPort
-        echo -e "Enter the ${yellow}subscription path${plain} (leave blank for existing/default value):"
-        read config_subPath
-
-        # Set configs
-        echo -e "${yellow}Initializing, please wait...${plain}"
-        params=""
-        [ -z "$config_port" ] || params="$params -port $config_port"
-        [ -z "$config_path" ] || params="$params -path $config_path"
-        [ -z "$config_subPort" ] || params="$params -subPort $config_subPort"
-        [ -z "$config_subPath" ] || params="$params -subPath $config_subPath"
-        /usr/local/hypanel/hypanel setting ${params}
-
-        read -p "Do you want to change admin credentials [y/n]? ": admin_confirm
-        if [[ "${admin_confirm}" == "y" || "${admin_confirm}" == "Y" ]]; then
-            # First admin credentials
-            read -p "Please set up your username:" config_account
-            read -p "Please set up your password:" config_password
-
-            # Set credentials
-            echo -e "${yellow}Initializing, please wait...${plain}"
-            /usr/local/hypanel/hypanel admin -username ${config_account} -password ${config_password}
-        else
-            echo -e "${yellow}Your current admin credentials: ${plain}"
-            /usr/local/hypanel/hypanel admin -show
-        fi
-    else
-        echo -e "${red}cancel...${plain}"
-        if [[ ! -f "/usr/local/hypanel/db/hypanel.db" ]]; then
-            local usernameTemp=$(head -c 6 /dev/urandom | base64)
-            local passwordTemp=$(head -c 6 /dev/urandom | base64)
-            echo -e "this is a fresh installation,will generate random login info for security concerns:"
-            echo -e "###############################################"
-            echo -e "${green}username:${usernameTemp}${plain}"
-            echo -e "${green}password:${passwordTemp}${plain}"
-            echo -e "###############################################"
-            echo -e "${red}if you forgot your login info,you can type ${green}hypanel${red} for configuration menu${plain}"
-            /usr/local/hypanel/hypanel admin -username ${usernameTemp} -password ${passwordTemp}
-        else
-            echo -e "${red} this is your upgrade,will keep old settings,if you forgot your login info,you can type ${green}hypanel${red} for configuration menu${plain}"
-        fi
-    fi
+run_panel() {
+  mkdir -p "$HYPANEL_DATA/db" "$HYPANEL_DATA/cert"
+  docker rm -f "$HYPANEL_CONTAINER" >/dev/null 2>&1 || true
+  log "Starting container '$HYPANEL_CONTAINER'..."
+  docker run -d --name "$HYPANEL_CONTAINER" --restart=unless-stopped \
+    -p "${HYPANEL_PANEL_PORT}:2095" \
+    -p "${HYPANEL_SUB_PORT}:2096" \
+    -p 443:443 -p 80:80 \
+    -v "$HYPANEL_DATA/db:/app/db" \
+    -v "$HYPANEL_DATA/cert:/root/cert" \
+    "$IMAGE" >/dev/null
 }
 
-prepare_services() {
-    if [[ -f "/etc/systemd/system/sing-box.service" ]]; then
-        echo -e "${yellow}Stopping sing-box service... ${plain}"
-        systemctl stop sing-box
-        rm -f /usr/local/hypanel/bin/sing-box /usr/local/hypanel/bin/runSingbox.sh /usr/local/hypanel/bin/signal
-    fi
-    if [[ -e "/usr/local/hypanel/bin" ]]; then
-        echo -e "###############################################################"
-        echo -e "${green}/usr/local/hypanel/bin${red} directory exists yet!"
-        echo -e "Please check the content and delete it manually after migration ${plain}"
-        echo -e "###############################################################"
-    fi
-    systemctl daemon-reload
+wait_for_db() {
+  log "Waiting for panel to initialize..."
+  for _ in $(seq 1 40); do
+    if docker exec "$HYPANEL_CONTAINER" test -f /app/db/hypanel.db >/dev/null 2>&1; then return 0; fi
+    sleep 1
+  done
+  warn "DB not detected after 40s; continuing anyway."
 }
 
-install_hypanel() {
-    cd /tmp/
+rand() { LC_ALL=C tr -dc "$1" </dev/urandom 2>/dev/null | head -c "$2" || true; }
 
-    if [ $# == 0 ]; then
-        last_version=$(curl -Ls "https://api.github.com/repos/by-sonic/HyPanel/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-        if [[ ! -n "$last_version" ]]; then
-            echo -e "${red}Failed to fetch HyPanel version, it maybe due to Github API restrictions, please try it later${plain}"
-            exit 1
-        fi
-        echo -e "Got HyPanel latest version: ${last_version}, beginning the installation..."
-        wget -N --no-check-certificate -O /tmp/hypanel-linux-$(arch).tar.gz https://github.com/by-sonic/HyPanel/releases/download/${last_version}/hypanel-linux-$(arch).tar.gz
-        if [[ $? -ne 0 ]]; then
-            echo -e "${red}Downloading HyPanel failed, please be sure that your server can access Github ${plain}"
-            exit 1
-        fi
-    else
-        last_version=$1
-        url="https://github.com/by-sonic/HyPanel/releases/download/${last_version}/hypanel-linux-$(arch).tar.gz"
-        echo -e "Beginning the install HyPanel v$1"
-        wget -N --no-check-certificate -O /tmp/hypanel-linux-$(arch).tar.gz ${url}
-        if [[ $? -ne 0 ]]; then
-            echo -e "${red}download HyPanel v$1 failed,please check the version exists${plain}"
-            exit 1
-        fi
-    fi
-
-    if [[ -e /usr/local/hypanel/ ]]; then
-        systemctl stop hypanel
-    fi
-
-    tar zxvf hypanel-linux-$(arch).tar.gz
-    rm hypanel-linux-$(arch).tar.gz -f
-
-    chmod +x hypanel/hypanel hypanel/hypanel.sh
-    cp hypanel/hypanel.sh /usr/bin/hypanel
-    cp -rf hypanel /usr/local/
-    cp -f hypanel/*.service /etc/systemd/system/
-    rm -rf hypanel
-
-    config_after_install
-    prepare_services
-
-    systemctl enable hypanel --now
-
-    echo -e "${green}HyPanel v${last_version}${plain} installation finished, it is up and running now..."
-    echo -e "You may access the Panel with following URL(s):${green}"
-    /usr/local/hypanel/hypanel uri
-    echo -e "${plain}"
-    echo -e ""
-    hypanel help
+configure_panel() {
+  # Fresh install (no prior creds marker) => generate strong random admin + obscure path.
+  if [ -f "$HYPANEL_DATA/.access" ]; then
+    log "Existing install detected; keeping current credentials/path."
+    return
+  fi
+  ADMIN_USER="admin"
+  ADMIN_PASS="$(rand 'A-Za-z0-9' 18)"
+  PANEL_PATH="/$(rand 'a-z0-9' 12)/"
+  log "Applying random admin password and panel path..."
+  docker exec "$HYPANEL_CONTAINER" ./hypanel admin -username "$ADMIN_USER" -password "$ADMIN_PASS" >/dev/null 2>&1 || warn "could not set admin creds"
+  docker exec "$HYPANEL_CONTAINER" ./hypanel setting -path "$PANEL_PATH" >/dev/null 2>&1 || warn "could not set panel path"
+  docker restart "$HYPANEL_CONTAINER" >/dev/null 2>&1 || true
+  umask 077
+  cat > "$HYPANEL_DATA/.access" <<EOF
+HYPANEL_ADMIN_USER=$ADMIN_USER
+HYPANEL_ADMIN_PASS=$ADMIN_PASS
+HYPANEL_PANEL_PATH=$PANEL_PATH
+EOF
 }
 
-echo -e "${green}Executing...${plain}"
-install_base
-install_hypanel $1
+# Anti-lockout firewall: allow SSH FIRST, arm a detached watchdog that disables
+# ufw after 300s unless this script cancels it (so a dropped SSH session can't
+# permanently lock the operator out), then enable.
+setup_firewall() {
+  if ! command -v ufw >/dev/null 2>&1; then
+    DEBIAN_FRONTEND=noninteractive apt-get install -y ufw >/dev/null 2>&1 || { warn "ufw unavailable; skipping firewall."; return; }
+  fi
+  log "Configuring firewall (SSH-safe)..."
+  ufw allow 22/tcp        >/dev/null 2>&1 || true
+  ufw allow OpenSSH       >/dev/null 2>&1 || true
+  ufw allow "${HYPANEL_PANEL_PORT}"/tcp >/dev/null 2>&1 || true
+  ufw allow "${HYPANEL_SUB_PORT}"/tcp   >/dev/null 2>&1 || true
+  ufw allow 80/tcp        >/dev/null 2>&1 || true
+  ufw allow 443/tcp       >/dev/null 2>&1 || true
+  ufw allow 443/udp       >/dev/null 2>&1 || true   # Hysteria2 (QUIC/UDP)
+  if ufw status 2>/dev/null | grep -q "Status: active"; then
+    ufw reload >/dev/null 2>&1 || true
+    return
+  fi
+  warn "Enabling ufw with a 300s auto-disable safety net (anti-lockout)."
+  nohup bash -c "sleep 300; ufw --force disable; rm -f '$WD_FLAG'" >/dev/null 2>&1 &
+  echo $! > "$WD_FLAG"
+  ufw --force enable >/dev/null 2>&1 || true
+}
+
+cancel_watchdog() {
+  if [ -f "$WD_FLAG" ]; then
+    kill "$(cat "$WD_FLAG")" >/dev/null 2>&1 || true
+    rm -f "$WD_FLAG"
+    log "Firewall confirmed; safety net cancelled."
+  fi
+}
+
+# Prefer IPv4 (panel access + sslip.io TLS rely on the v4 address).
+public_ip() {
+  curl -4 -fsS --max-time 5 https://api.ipify.org 2>/dev/null \
+    || curl -4 -fsS --max-time 5 https://ifconfig.me 2>/dev/null \
+    || curl -4 -fsS --max-time 5 https://icanhazip.com 2>/dev/null \
+    || ip -4 route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src"){print $(i+1); exit}}' \
+    || hostname -I | awk '{print $1}'
+}
+
+summary() {
+  local ip; ip="$(public_ip | tr -d '[:space:]')"
+  # shellcheck disable=SC1090
+  . "$HYPANEL_DATA/.access"
+  echo
+  ok "HyPanel is up."
+  echo "  ──────────────────────────────────────────────"
+  echo "   Panel URL : http://${ip}:${HYPANEL_PANEL_PORT}${HYPANEL_PANEL_PATH}"
+  echo "   Username  : ${HYPANEL_ADMIN_USER}"
+  echo "   Password  : ${HYPANEL_ADMIN_PASS}"
+  echo "   Sub port  : ${HYPANEL_SUB_PORT}"
+  echo "   Data dir  : ${HYPANEL_DATA}"
+  echo "  ──────────────────────────────────────────────"
+  echo "   Credentials saved to ${HYPANEL_DATA}/.access"
+  # TODO(next iter): zero-DNS TLS via <ip>.sslip.io + Let's Encrypt -> https URL.
+  echo
+}
+
+main() {
+  require_root
+  install_docker
+  resolve_image
+  run_panel
+  wait_for_db
+  configure_panel
+  setup_firewall
+  cancel_watchdog
+  summary
+}
+main "$@"

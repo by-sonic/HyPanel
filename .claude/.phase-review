@@ -1,25 +1,22 @@
-phase-review: feat/hy2-live-users — Phase-2 internal identity rename s-ui -> HyPanel
-change: internal identifiers (not just UI). Go module path github.com/alireza0/s-ui ->
-  github.com/by-sonic/HyPanel (go.mod + 54 .go files / 138 imports; replace directives
-  intact). Binary sui -> hypanel (Dockerfile, build.sh, entrypoint, launchers, systemd;
-  file renames s-ui.service->hypanel.service, s-ui.sh->hypanel.sh, windows/s-ui-windows.*
-  ->hypanel-windows.*). Internal ids: session cookie, logger channel, config name
-  (DB->hypanel.db), backup prefix, env SUI_->HYPANEL_, paths /usr/local/s-ui->
-  /usr/local/hypanel. Repo URLs -> by-sonic/HyPanel in scripts/docs/workflows.
-review: SELF-REVIEW — proportionate for a mechanical identity rename (no logic change),
-  consistent with prior Dockerfile precedent. Full agent panel skipped as
-  disproportionate for an 80-file string sweep; security review skipped per standing
-  user rule (no-security-checks). The rename was executed by a delegated agent and
-  independently verified here.
-verification: docker build -t hypanel:dev . => EXIT 0 (in-container Go compile is the
-  definitive test for the module-path rename — zero missed imports; binary built as
-  /app/hypanel). Cross-file contracts the compiler can't catch, checked manually:
-  (1) no residual SUI_ env (no half-rename); HYPANEL_ present in both config.go reader
-  and entrypoint/runSUI setters; (2) cookie lockstep web.go Sessions("hypanel") <->
-  router.ts startsWith('hypanel='); (3) warp.go "model":"s-ui" PRESERVED (WARP API);
-  (4) LICENSE untouched; (5) zero alireza0/s-ui in .go; go.mod module + 2 replaces intact.
-preserved (GPL/upstream): LICENSE, frontend/LICENSE, README Credits (s-ui+sing-box),
-  Dockerfile author label, cipher_suites substring.
-notes: existing local db/s-ui.db NOT auto-migrated to hypanel.db (dev fork, acceptable).
-  Registry images (alireza7/s-ui, ghcr.io/alireza0/s-ui) left until HyPanel publishes
-  its own image (no registry yet).
+phase-review: feat/hy2-live-users — Ф2 one-command installer (install.sh) v1 [core]
+change: replaced legacy s-ui systemd/release-tarball install.sh with a Docker-based
+  one-command installer. Flow: install Docker (get.docker.com, idempotent) -> resolve
+  image (GHCR pull -> local hypanel:dev -> build-from-source fallback) -> run container
+  (persist /opt/hypanel/{db,cert}, ports 2095/2096/80/443) -> generate RANDOM admin
+  password + obscure panel path (./hypanel admin / setting) -> SSH-safe UFW (allow 22
+  FIRST + nohup watchdog auto-disabling ufw in 300s unless cancelled = anti-lockout) ->
+  print access summary. Idempotent (skips reconfig if /opt/hypanel/.access exists).
+review: SELF-REVIEW + LIVE END-TO-END TEST on dev VPS 201.51.25.203 (the authoritative
+  test for a shell installer). security review skipped per standing user rule. Full
+  parallel agent review deferred to iteration 2 (before the public push).
+bug found+fixed during test: `set -o pipefail` + `rand(){ tr </dev/urandom | head -c N }`
+  -> head closes pipe -> tr SIGPIPE -> pipefail+errexit silently aborted the script at
+  the credential step. Fixed: dropped pipefail (set -eu) + `|| true` on rand. Also
+  public_ip now forces IPv4 (curl -4) — api64 had returned an unbracketed IPv6.
+verification (VPS, detached run): full log reached summary; container Up; ufw ACTIVE
+  with SSH(22) allowed and MY session survived enable; random creds+path applied;
+  EXTERNAL curl http://201.51.25.203:2095/<randompath>/ = HTTP 307 (panel serves),
+  old /app/ = 404 (path changed), sub 2096 responds. NOT pushed yet (local commit).
+remaining (iteration 2): GHCR publish Action (fast pull instead of slow/ OOM-risky
+  build-from-source on small VPS) + zero-DNS TLS (<ip>.sslip.io + Let's Encrypt) ->
+  then parallel code-review + push + final `bash <(curl ...)` one-command test.
