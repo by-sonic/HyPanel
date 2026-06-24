@@ -1,22 +1,14 @@
-phase-review: feat/hy2-live-users — Ф2 one-command installer (install.sh) v1 [core]
-change: replaced legacy s-ui systemd/release-tarball install.sh with a Docker-based
-  one-command installer. Flow: install Docker (get.docker.com, idempotent) -> resolve
-  image (GHCR pull -> local hypanel:dev -> build-from-source fallback) -> run container
-  (persist /opt/hypanel/{db,cert}, ports 2095/2096/80/443) -> generate RANDOM admin
-  password + obscure panel path (./hypanel admin / setting) -> SSH-safe UFW (allow 22
-  FIRST + nohup watchdog auto-disabling ufw in 300s unless cancelled = anti-lockout) ->
-  print access summary. Idempotent (skips reconfig if /opt/hypanel/.access exists).
-review: SELF-REVIEW + LIVE END-TO-END TEST on dev VPS 201.51.25.203 (the authoritative
-  test for a shell installer). security review skipped per standing user rule. Full
-  parallel agent review deferred to iteration 2 (before the public push).
-bug found+fixed during test: `set -o pipefail` + `rand(){ tr </dev/urandom | head -c N }`
-  -> head closes pipe -> tr SIGPIPE -> pipefail+errexit silently aborted the script at
-  the credential step. Fixed: dropped pipefail (set -eu) + `|| true` on rand. Also
-  public_ip now forces IPv4 (curl -4) — api64 had returned an unbracketed IPv6.
-verification (VPS, detached run): full log reached summary; container Up; ufw ACTIVE
-  with SSH(22) allowed and MY session survived enable; random creds+path applied;
-  EXTERNAL curl http://201.51.25.203:2095/<randompath>/ = HTTP 307 (panel serves),
-  old /app/ = 404 (path changed), sub 2096 responds. NOT pushed yet (local commit).
-remaining (iteration 2): GHCR publish Action (fast pull instead of slow/ OOM-risky
-  build-from-source on small VPS) + zero-DNS TLS (<ip>.sslip.io + Let's Encrypt) ->
-  then parallel code-review + push + final `bash <(curl ...)` one-command test.
+phase-review: feat/hy2-live-users — Ф2 iter2: GHCR publish workflow
+change: add .github/workflows/ghcr.yml — builds the HyPanel image (linux/amd64) and
+  pushes to ghcr.io/by-sonic/hypanel:{latest,sha} on push to main, via built-in
+  GITHUB_TOKEN (packages:write), gha build cache. Enables install.sh fast `docker pull`
+  instead of build-from-source on small VPS. Pushes the already-VPS-verified installer
+  commit d85da0c to main in the same push.
+review: SELF-REVIEW — CI workflow config; the authoritative test is the Action run
+  itself (build+push must go green) + a subsequent `docker pull` from the VPS. security
+  review skipped per standing user rule. Parallel agent review reserved for the
+  TLS/code iteration.
+verification: pending — (1) Action run green, (2) set GHCR package public, (3)
+  `docker pull ghcr.io/by-sonic/hypanel:latest` succeeds from VPS 201.51.25.203.
+remaining: zero-DNS TLS (<ip>.sslip.io + Let's Encrypt -> https) = next iteration;
+  then final full one-command test.
